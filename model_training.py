@@ -45,7 +45,6 @@ def correct_encoding(df):
     remaining_categorical = df_encoded.select_dtypes(include=['object']).columns
     df_encoded = pd.get_dummies(df_encoded, columns=remaining_categorical, drop_first=True)
     df_encoded = df_encoded.drop(columns=quality_features, errors='ignore')
-
     return df_encoded
 
 def train_and_save_model():
@@ -61,17 +60,25 @@ def train_and_save_model():
     n_train = len(df)
     df_train = df_all.iloc[:n_train, :]
     df_test = df_all.iloc[n_train:, :]
-   
-    # Train model
-    lr_model = LinearRegression()
-    lr_model.fit(df_train, df_price)
     
-    # Save model and feature names
+    # Scale the features
+    scaler = StandardScaler()
+    df_train_scaled = scaler.fit_transform(df_train)
+    df_test_scaled = scaler.transform(df_test)
+    
+    # Train model on scaled data
+    lr_model = LinearRegression()
+    lr_model.fit(df_train_scaled, df_price)
+    
+    # Save model, scaler, and feature names
     joblib.dump(lr_model, 'house_price_model.pkl')
+    joblib.dump(scaler, 'scaler.pkl')
     joblib.dump(df_train.columns.tolist(), 'feature_columns.pkl')
     
     print("Model trained and saved successfully!")
-    return lr_model, df_train.columns.tolist()
+    print(f"Number of features: {df_train.shape[1]}")
+    
+    return lr_model, scaler, df_train.columns.tolist()
 
 if __name__ == "__main__":
     train_and_save_model()
